@@ -28,12 +28,12 @@ using nlohmann::json;
 
 struct CyhairInput {
   std::string filename;
-  float thickness = 1.0f;
+  float user_thickness = -1.0f; // negative = use thickness in .hair
+  float thickness_scale = 1.0f; // thickness scale applied after reading .hair
 };
 
 static bool CombineCyhair(
   const std::vector<CyhairInput> &inputs,
-  const bool overwite_thickness,
   std::vector<float> *points,
   std::vector<uint32_t> *num_points_per_segments,
   std::vector<float> *thicknesses)
@@ -63,15 +63,15 @@ static bool CombineCyhair(
       num_points_per_segments->push_back(hair.segments_[k] + 1);
     }
 
-    if (overwite_thickness) {
+    if (inputs[i].user_thickness >= 0.0f) {
       for (size_t k = 0; k < num_points; k++) {
-        thicknesses->push_back(inputs[i].thickness);
+        thicknesses->push_back(inputs[i].user_thickness * inputs[i].thickness_scale);
       }
     } else {
       assert(num_points == hair.thicknesses_.size());
 
       for (size_t k = 0; k < hair.thicknesses_.size(); k++) {
-        thicknesses->push_back(hair.thicknesses_[k]);
+        thicknesses->push_back(hair.thicknesses_[k] * inputs[i].thickness_scale);
       }
     }
   }
@@ -111,11 +111,15 @@ int main(int argc, char **argv)
 
     in.filename = o["filename"];
 
-    if (o.count("thickness")) {
-      in.thickness = float(o["thickness"]);
+    if (o.count("user_thickness")) {
+      in.user_thickness = float(o["user_thickness"]);
     }
 
-    std::cout << "filename : " << in.filename << ", thickness = " << in.thickness << std::endl;
+    if (o.count("thickness_scale")) {
+      in.thickness_scale = float(o["thickness_scale"]);
+    }
+
+    std::cout << "filename : " << in.filename << ", user_thickness = " << in.user_thickness << ", thickness_scale = " << in.thickness_scale << std::endl;
 
     cyhair_inputs.emplace_back(std::move(in));
   }
@@ -126,7 +130,7 @@ int main(int argc, char **argv)
 
   // FIXME(syoyo): Read overwite thickness parameter from args
   // TODO(syoyo): Support transparency and colors.
-  if (!CombineCyhair(cyhair_inputs, /* overwrite thickness */true, &points, &num_points_per_segments, &thickness)) {
+  if (!CombineCyhair(cyhair_inputs,  &points, &num_points_per_segments, &thickness)) {
     std::cerr << "Failed to combine cyhair" << std::endl;
   }
 
