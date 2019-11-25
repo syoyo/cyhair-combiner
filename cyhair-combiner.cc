@@ -43,6 +43,9 @@ static bool CombineCyhair(
   thicknesses->clear();
  
   for (size_t i = 0; i < inputs.size(); i++) {
+
+    std::cout << "Loading cyhair : " << inputs[i].filename << std::endl;
+
     // TODO(syoyo): Check if all cyhair file has points, segments and thickness attributes.
     cyhair_loader::CyHair hair;
     if (!hair.Load(inputs[i].filename.c_str())) {
